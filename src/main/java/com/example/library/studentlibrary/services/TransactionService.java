@@ -45,7 +45,29 @@ public class TransactionService {
         //If the transaction is successful, save the transaction to the list of transactions and return the id
 
         //Note that the error message should match exactly in all cases
+        int criteria =0;
+        Book book =  bookRepository5.findById(bookId).orElse(null);
+        if(book == null) throw new Exception("Book Not Present Or Unavailable");
+        else criteria++;
 
+        Card card = cardRepository5.findById(cardId).orElse(null);
+        if(card ==null) throw new Exception("Card is invalid");
+        else criteria++;
+
+        int count = card.getBooks().size();
+        if(count > max_allowed_books) throw new Exception("Book limit has reached for this card");
+        else criteria++;
+
+        Transaction transaction = null;
+
+        if(criteria == 3){
+            transaction = Transaction.builder().book(book).card(card).isIssueOperation(true).transactionStatus(TransactionStatus.SUCCESSFUL).build();
+            transactionRepository5.save(transaction);
+            book.setAvailable(false);
+            bookRepository5.updateBook(book);
+        }
+
+        if(transaction != null) return transaction.getTransactionId();
        return null; //return transactionId instead
     }
 
@@ -58,7 +80,12 @@ public class TransactionService {
         //make the book available for other users
         //make a new transaction for return book which contains the fine amount as well
 
-        Transaction returnBookTransaction  = null;
+        Book book = transaction.getBook();
+        book.setAvailable(true);
+        bookRepository5.updateBook(book);
+
+        Transaction returnBookTransaction  = Transaction.builder().book(book).card(transaction.getCard()).transactionStatus(TransactionStatus.SUCCESSFUL).fineAmount(0).build();
+        transactionRepository5.save(returnBookTransaction);
         return returnBookTransaction; //return the transaction after updating all details
     }
 }
